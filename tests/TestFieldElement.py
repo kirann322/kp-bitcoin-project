@@ -5,37 +5,37 @@ from src.FieldElement import FieldElement
 
 class TestFieldElement(unittest.TestCase):
     def test_eq(self):
-        a = FieldElement(57, 33)
-        b = FieldElement(57, 33)
+        a = FieldElement(61, 33)
+        b = FieldElement(61, 33)
         self.assertEqual(a, b)
 
     def test_ne(self):
-        a = FieldElement(57, 44)
-        b = FieldElement(57, 33)
+        a = FieldElement(61, 44)
+        b = FieldElement(61, 33)
         self.assertNotEqual(a, b)
 
     def test_add(self):
-        a = FieldElement(57, 44)
-        b = FieldElement(57, 33)
-        c = FieldElement(57, 20)
+        a = FieldElement(61, 44)
+        b = FieldElement(61, 33)
+        c = FieldElement(61, 16)
         self.assertEqual(a + b, c)
 
-        d = FieldElement(57, 17)
-        e = FieldElement(57, 42)
-        f = FieldElement(57, 49)
-        g = FieldElement(57, 51)
+        d = FieldElement(61, 17)
+        e = FieldElement(61, 42)
+        f = FieldElement(61, 49)
+        g = FieldElement(61, 47)
         self.assertEqual(d + e + f, g)
 
     def test_sub(self):
-        a = FieldElement(57, 9)
-        b = FieldElement(57, 29)
-        c = FieldElement(57, 37)
+        a = FieldElement(61, 9)
+        b = FieldElement(61, 29)
+        c = FieldElement(61, 41)
         self.assertEqual(a - b, c)
 
-        d = FieldElement(57, 52)
-        e = FieldElement(57, 30)
-        f = FieldElement(57, 38)
-        g = FieldElement(57, 41)
+        d = FieldElement(61, 52)
+        e = FieldElement(61, 30)
+        f = FieldElement(61, 38)
+        g = FieldElement(61, 45)
         self.assertEqual(d - e - f, g)
     
     def test_mul(self):

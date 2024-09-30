@@ -6,12 +6,14 @@ class EllipticCurvePoint:
         self.b = b
         self.x = x
         self.y = y
+        """
         if self.y**2 != self.x**3 + a*x + b and not(x is None and y is None):
             error = f"({x}, {y}) is not on the curve"
             raise ValueError(error)
         """
+        """
         if 4 * (a**3) + 27 * (b**2) == 0:
-            error = f"a = {a} and b = {b} creates acurve with singularities, this is not allowed"
+            error = f"a = {a} and b = {b} creates a curve with singularities, this is not allowed"
             raise ValueError(error)
         """
     
@@ -42,7 +44,7 @@ class EllipticCurvePoint:
         if point.x is None and point.y is None:
             return point
         
-        if self.x == point.x and (self.y != point.y or self.y == 0 or point.y == 0):
+        if (self.x == point.x) and (self.y != point.y or self.y == 0 or point.y == 0):
             return EllipticCurvePoint(self.a, self.b, None, None)
         elif self == point:
             slope = (3 * (self.x**2) + self.a) / (2 * self.y)
@@ -54,3 +56,31 @@ class EllipticCurvePoint:
             y_3 = slope * (self.x - x_3) - self.y
 
         return EllipticCurvePoint(self.a, self.b, x_3, y_3)
+    
+    def __mul__(self, other):
+        if isinstance(other, int) and other >= 0:
+            current_term = EllipticCurvePoint(self.a, self.b, self.x, self.y)
+            solution = EllipticCurvePoint(self.a, self.b, None, None)
+            while other:
+                if other & 1:
+                    solution += current_term
+                current_term += current_term
+                other = other >> 1
+            return solution
+        else:
+            error = "Incompatible type scalar multiplying with an EllipticCurvePoint"
+            raise TypeError(error)
+    
+    def __rmul__(self, other):
+        if isinstance(other, int) and other >= 0:
+            current_term = EllipticCurvePoint(self.a, self.b, self.x, self.y)
+            solution = EllipticCurvePoint(self.a, self.b, None, None)
+            while other:
+                if other & 1:
+                    solution += current_term
+                current_term += current_term
+                other = other >> 1
+            return solution
+        else:
+            error = "Incompatible type scalar multiplying with an EllipticCurvePoint"
+            raise TypeError(error)

@@ -26,7 +26,7 @@ class TestEllipticCurvePoint(unittest.TestCase):
         a = FieldElement(prime, 0)
         b = FieldElement(prime, 7)
         valid_points = [(192, 105), (17, 56), (1, 193)]
-        invalid_points = [(200, 119), (42, 99)]
+        invalid_points = [(200, 119), (42, 99), (35, 56)]
         for x, y in valid_points:
             x_field = FieldElement(prime, x)
             y_field = FieldElement(prime, y)
