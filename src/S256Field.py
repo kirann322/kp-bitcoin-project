@@ -24,6 +24,28 @@ class S256Point(EllipticCurvePoint):
         else:
             super().__init__(x=x, y=y, a=a, b=b)
     
+    def __repr__(self):
+        if self.x is None:
+            return "S256Point(infinity)"
+        else:
+            return f"S256Point({hex(self.x.num)}, {hex(self.y.num)})"
+        
     def __rmul__(self, coefficient):
         coef = coefficient % CONSTANT_N
-        return super().__rmul__(coef)
+        result = super().__rmul__(coef)
+        return S256Point(result.x, result.y, result.a, result.b)
+    
+    def verify(self, z, signature):
+        s_inv = pow(signature.s, CONSTANT_N - 2, CONSTANT_N)
+        u = z * s_inv % CONSTANT_N 
+        v = signature.r * s_inv % CONSTANT_N
+        total = u * S256Point(CONSTANT_GX, CONSTANT_GY) + v * self
+        return total.x.num == signature.r
+
+class Signature:
+    def __init__(self, r, s):
+        self.r = r
+        self.s = s
+    
+    def __repr__(self) -> str:
+        return f"Signature({self.r}, {self.s})"

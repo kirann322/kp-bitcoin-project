@@ -1,8 +1,13 @@
+from random import randint
 from FieldElement import FieldElement
 from EllipticCurvePoint import EllipticCurvePoint
 from S256Field import S256Field, S256Point
 
+import hmac
+import hashlib
+
 def main():
+    CONSTANT_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
     CONSTANT_GX = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
     CONSTANT_GY = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
     CONSTANT_G = S256Point(CONSTANT_GX, CONSTANT_GY)
@@ -74,16 +79,58 @@ def main():
     print(7 * EllipticCurvePoint(a, b, FieldElement(prime, 47), FieldElement(prime, 71)))
     print(2 * EllipticCurvePoint(a, b, FieldElement(prime, 47), FieldElement(prime, 71)) + 5 * EllipticCurvePoint(a, b, FieldElement(prime, 47), FieldElement(prime, 71)))
     """
+    """
     gx = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
     gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
     p = 2**256 - 2**32 - 977
     print(gy**2 % p == (gx**3 + 7) % p)
 
-    n = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+    N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
     x = FieldElement(p, gx)
     y = FieldElement(p, gy)
     G = EllipticCurvePoint(FieldElement(p, 0), FieldElement(p, 7), x, y)
-    print(n*CONSTANT_G)
+    print(N*CONSTANT_G)
+    
+    N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+    z = 0xbc62d4b80d9e36da29c16c5d4d9f11731f36052c72401a76c23c0fb5a9b74423
+    r = 0x37206a0610995c58074999cb9767b87af4c4978db68c06e8e6e81d282047a7c6
+    s = 0x8ca63759c1157ebeaec0d03cecca119fc9a75bf8e6d0fa65c841c8e2738cdaec
+    px = 0x04519fac3d910ca7e7138f7013706f619fa8f033e6ec6e09370ea38cee6a7574
+    py = 0x82b51eab8c27c66e26c858a079bcdf4f1ada34cec420cafc7eac1a42216fb6c4
+    point = S256Point(px, py)
+    s_inv = pow(s, N-2, N)
+    u = z * s_inv % N
+    v = r * s_inv % N
+    print((u*CONSTANT_G + v*point).x.num == r)
+
+    px = 0x887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c
+    py = 0x61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34
+    point = S256Point(px, py)
+
+    z = 0xec208baa0fc1c19f708a9ca96fdeff3ac3f230bb4a7ba4aede4942ad003c0f60
+    r = 0xac8d1c87e51d0d441be8b3dd5b05c8795b48875dffe00b7ffcfac23010d3a395
+    s = 0x68342ceff8935ededd102dd876ffd6ba72d6a427a3edb13d26eb0781cb423c4
+    u = z * pow(s, N-2, N) % N
+    v = r * pow(s, N-2, N) % N
+    print((u*CONSTANT_G + v*point).x.num == r)
+
+    z = 0x7c076ff316692a3d7eb3c3bb0f8b1488cf72e1afcd929e29307032997a838a3d
+    r = 0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c
+    s = 0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6
+    u = z * pow(s, N-2, N) % N
+    v = r * pow(s, N-2, N) % N
+    print((u*CONSTANT_G + v*point).x.num == r)
+    """
+    e = 12345
+    z = int.from_bytes(hashlib.sha256(hashlib.sha256(b'Programming Bitcoin!').digest()).digest(), 'big')
+    k = 1234567890
+    r = (k*CONSTANT_G).x.num
+    k_inv = pow(k, CONSTANT_N-2, CONSTANT_N)
+    s = (z+r*e) * k_inv % CONSTANT_N
+    print(e*CONSTANT_G)
+    print(hex(z))
+    print(hex(r))
+    print(hex(s))
 
 if __name__ == "__main__":
     main()
