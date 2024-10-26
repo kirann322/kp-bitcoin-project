@@ -2,6 +2,7 @@ from random import randint
 from FieldElement import FieldElement
 from EllipticCurvePoint import EllipticCurvePoint
 from S256Field import S256Field, S256Point
+from PrivateKey import PrivateKey
 
 import hmac
 import hashlib
@@ -121,6 +122,7 @@ def main():
     v = r * pow(s, N-2, N) % N
     print((u*CONSTANT_G + v*point).x.num == r)
     """
+    """
     e = 12345
     z = int.from_bytes(hashlib.sha256(hashlib.sha256(b'Programming Bitcoin!').digest()).digest(), 'big')
     k = 1234567890
@@ -131,6 +133,13 @@ def main():
     print(hex(z))
     print(hex(r))
     print(hex(s))
+    """
+    priv = PrivateKey(5000)
+    print(priv.point.sec(compressed=False).hex())
+    priv = PrivateKey(2018**5)
+    print(priv.point.sec(compressed=False).hex())
+    priv = PrivateKey(0xdeadbeef12345)
+    print(priv.point.sec(compressed=False).hex())
 
 if __name__ == "__main__":
     main()

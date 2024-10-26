@@ -2,6 +2,7 @@ from __future__ import annotations
 from random import randint
 from unittest import TestCase
 from S256Field import S256Field, S256Point, Signature
+from utils import encode_base58_checksum
 
 import hmac
 import hashlib
@@ -47,6 +48,18 @@ class PrivateKey:
                 return candidate
             k = hmac.new(k, v + b'\x00', s256).digest()
             v = hmac.new(k, v, s256).digest()
+    
+    def wif(self, compressed=True, testnet=False):
+        secret_bytes = self.secret.to_bytes(32, 'big')
+        if testnet:
+            prefix = b'\xef'
+        else:
+            prefix = b'\x80'
+        if compressed:
+            suffix = b'\x01'
+        else:
+            suffix = b''
+        return encode_base58_checksum(prefix + secret_bytes + suffix)
 
 class PrivateKeyTest(TestCase):
 
