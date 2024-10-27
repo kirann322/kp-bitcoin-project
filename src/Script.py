@@ -2,7 +2,7 @@ from io import BytesIO
 from logging import getLogger
 from unittest import TestCase
 
-from helper import (
+from utils import (
     encode_varint,
     int_to_little_endian,
     little_endian_to_int,
@@ -11,6 +11,9 @@ from helper import (
 from op import (
     OP_CODE_FUNCTIONS,
     OP_CODE_NAMES,
+    op_hash160,
+    op_verify,
+    op_equal
 )
 
 
@@ -150,13 +153,45 @@ class Script:
                         LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
                         return False
             else:
-                # add the cmd to the stack
                 stack.append(cmd)
+                if len(cmds) == 3 and cmds[0] == 0xa9 \
+                    and type(cmds[1]) == bytes and len(cmds[1]) == 20 \
+                    and cmds[2] == 0x87:
+                    cmds.pop()
+                    h160 = cmds.pop()
+                    cmds.pop()
+                    if not op_hash160(stack):
+                        return False
+                    stack.append(h160)
+                    if not op_equal(stack):
+                        return False
+                    if not op_verify(stack):
+                        LOGGER.info('bad p2sh h160')
+                        return False
+                    redeem_script = encode_varint(len(cmd)) + cmd
+                    stream = BytesIO(redeem_script)
+                    cmds.extend(Script.parse(stream).cmds)
+                    # end::source1[]
         if len(stack) == 0:
             return False
         if stack.pop() == b'':
             return False
         return True
+
+    def is_p2pkh_script_pubkey(self):
+        '''Returns whether this follows the
+        OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG pattern.'''
+        return len(self.cmds) == 5 and self.cmds[0] == 0x76 \
+            and self.cmds[1] == 0xa9 \
+            and type(self.cmds[2]) == bytes and len(self.cmds[2]) == 20 \
+            and self.cmds[3] == 0x88 and self.cmds[4] == 0xac
+
+    def is_p2sh_script_pubkey(self):
+        '''Returns whether this follows the
+        OP_HASH160 <20 byte hash> OP_EQUAL pattern.'''
+        return len(self.cmds) == 3 and self.cmds[0] == 0xa9 \
+            and type(self.cmds[1]) == bytes and len(self.cmds[1]) == 20 \
+            and self.cmds[2] == 0x87
 
 
 class ScriptTest(TestCase):
