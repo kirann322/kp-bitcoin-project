@@ -171,7 +171,6 @@ class Script:
                     redeem_script = encode_varint(len(cmd)) + cmd
                     stream = BytesIO(redeem_script)
                     cmds.extend(Script.parse(stream).cmds)
-                    # end::source1[]
         if len(stack) == 0:
             return False
         if stack.pop() == b'':
