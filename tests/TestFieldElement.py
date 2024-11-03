@@ -1,6 +1,4 @@
 import unittest
-import sys
-sys.path.append("./")
 from src.FieldElement import FieldElement
 
 class TestFieldElement(unittest.TestCase):

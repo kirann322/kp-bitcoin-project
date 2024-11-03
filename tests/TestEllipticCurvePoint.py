@@ -1,6 +1,4 @@
 import unittest
-import sys
-sys.path.append("./")
 from src.EllipticCurvePoint import EllipticCurvePoint
 from src.FieldElement import FieldElement
 

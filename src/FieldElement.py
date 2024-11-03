@@ -1,28 +1,14 @@
 from __future__ import annotations
+from sympy import isprime
+from utils import CONSTANT_PRIME
 
 class FieldElement:
     def __init__(self, prime: int, num: int) -> None:
-        def is_prime(num: int) -> bool:
-            if num <= 1:
-                return False
-            elif num % 2 == 0:
-                return False
-            else:
-                nums = [True] * (num+1)
-                nums[0], nums[1] = False, False
-                for idx in range(2, int(num**0.5)+1, 1):
-                    if nums[idx] == 1:
-                        counter = 0
-                        while idx ** 2 + counter * idx <= num:
-                            nums[idx ** 2 + counter * idx] = False
-                            counter += 1
-                return nums[num]
-        
         if num >= prime or num < 0:
-            error = "Num {} not in field range 0 to {}".format(num, prime - 1)
+            error = f"Num {num} not in field range 0 to {prime-1}"
             raise ValueError(error)
         
-        if prime == (2**256 - 2**32 - 977) or is_prime(prime):
+        if prime == CONSTANT_PRIME or isprime(prime):
             self.num = num
             self.prime = prime
         else:
@@ -30,7 +16,7 @@ class FieldElement:
             raise ValueError(error)
 
     def __repr__(self) -> str:
-        return "FieldElement_{}({})".format(self.prime, self.num)
+        return f"F_{self.prime}({self.num})"
     
     def __eq__(self, other: FieldElement) -> bool:
         if isinstance(other, FieldElement):
