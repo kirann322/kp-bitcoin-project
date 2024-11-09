@@ -1,11 +1,12 @@
 from __future__ import annotations
 from random import randint
 from unittest import TestCase
-from S256Field import S256Field, S256Point, Signature
 from utils import encode_base58_checksum
 
 import hmac
 import hashlib
+import Signature
+import S256Field
 
 CONSTANT_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
 CONSTANT_GX = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
@@ -50,6 +51,7 @@ class PrivateKey:
             v = hmac.new(k, v, s256).digest()
     
     def wif(self, compressed=True, testnet=False):
+        """Encodes the secret key in Wallet Import Format (WIF)"""
         secret_bytes = self.secret.to_bytes(32, 'big')
         if testnet:
             prefix = b'\xef'
@@ -62,7 +64,12 @@ class PrivateKey:
         return encode_base58_checksum(prefix + secret_bytes + suffix)
 
 class PrivateKeyTest(TestCase):
-
+    def test_sign(self):
+        pk = PrivateKey(randint(0, CONSTANT_N))
+        z = randint(0, 2**256)
+        sig = pk.sign(z)
+        self.assertTrue(pk.point.verify(z, sig))
+    
     def test_sign(self):
         pk = PrivateKey(randint(0, CONSTANT_N))
         z = randint(0, 2**256)

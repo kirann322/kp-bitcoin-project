@@ -1,3 +1,4 @@
+from __future__ import annotations
 from io import BytesIO
 from logging import getLogger
 from unittest import TestCase
@@ -6,7 +7,7 @@ from utils import (
     encode_varint,
     int_to_little_endian,
     little_endian_to_int,
-    read_varint,
+    decode_varint,
 )
 from op import (
     OP_CODE_FUNCTIONS,
@@ -41,9 +42,9 @@ class Script:
         return ' '.join(result)
 
     @classmethod
-    def parse(cls, s):
+    def parse_script(cls, byte_stream: bytes) -> Script:
         # get the length of the entire field
-        length = read_varint(s)
+        length = decode_varint(byte_stream)
         # initialize the cmds array
         cmds = []
         # initialize the number of bytes we've read to 0
@@ -51,7 +52,7 @@ class Script:
         # loop until we've read length bytes
         while count < length:
             # get the current byte
-            current = s.read(1)
+            current = byte_stream.read(1)
             # increment the bytes we've read
             count += 1
             # convert the current byte to an integer
@@ -61,18 +62,18 @@ class Script:
                 # we have an cmd set n to be the current byte
                 n = current_byte
                 # add the next n bytes as an cmd
-                cmds.append(s.read(n))
+                cmds.append(byte_stream.read(n))
                 # increase the count by n
                 count += n
             elif current_byte == 76:
                 # op_pushdata1
-                data_length = little_endian_to_int(s.read(1))
-                cmds.append(s.read(data_length))
+                data_length = little_endian_to_int(byte_stream.read(1))
+                cmds.append(byte_stream.read(data_length))
                 count += data_length + 1
             elif current_byte == 77:
                 # op_pushdata2
-                data_length = little_endian_to_int(s.read(2))
-                cmds.append(s.read(data_length))
+                data_length = little_endian_to_int(byte_stream.read(2))
+                cmds.append(byte_stream.read(data_length))
                 count += data_length + 2
             else:
                 # we have an opcode. set the current byte to op_code
@@ -81,7 +82,7 @@ class Script:
                 cmds.append(op_code)
         if count != length:
             raise SyntaxError('parsing script failed')
-        return cls(cmds)
+        return Script(cmds)
 
     def raw_serialize(self):
         # initialize what we'll send back
@@ -122,8 +123,7 @@ class Script:
         return encode_varint(total) + result
 
     def evaluate(self, z):
-        # create a copy as we may need to add to this list if we have a
-        # RedeemScript
+        # create a copy as we may need to add to this list if we have a RedeemScript
         cmds = self.cmds[:]
         stack = []
         altstack = []
@@ -170,7 +170,7 @@ class Script:
                         return False
                     redeem_script = encode_varint(len(cmd)) + cmd
                     stream = BytesIO(redeem_script)
-                    cmds.extend(Script.parse(stream).cmds)
+                    cmds.extend(Script.parse_script(stream).cmds)
         if len(stack) == 0:
             return False
         if stack.pop() == b'':
@@ -178,16 +178,14 @@ class Script:
         return True
 
     def is_p2pkh_script_pubkey(self):
-        '''Returns whether this follows the
-        OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG pattern.'''
+        """Returns whether this follows the OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG pattern"""
         return len(self.cmds) == 5 and self.cmds[0] == 0x76 \
             and self.cmds[1] == 0xa9 \
             and type(self.cmds[2]) == bytes and len(self.cmds[2]) == 20 \
             and self.cmds[3] == 0x88 and self.cmds[4] == 0xac
 
     def is_p2sh_script_pubkey(self):
-        '''Returns whether this follows the
-        OP_HASH160 <20 byte hash> OP_EQUAL pattern.'''
+        """Returns whether this follows the OP_HASH160 <20 byte hash> OP_EQUAL pattern"""
         return len(self.cmds) == 3 and self.cmds[0] == 0xa9 \
             and type(self.cmds[1]) == bytes and len(self.cmds[1]) == 20 \
             and self.cmds[2] == 0x87
