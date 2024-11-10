@@ -7,19 +7,20 @@ CONSTANT_PRIME = (2**256 - 2**32 - 977)
 CONSTANT_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
 CONSTANT_GX = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
 CONSTANT_GY = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+CONSTANT_SECONDS_IN_TWO_WEEKS = 60*60*24*14
 
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
 BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
-def hash160(s):
+def hash160(input: any) -> bytes:
     '''sha256 followed by ripemd160'''
-    return hashlib.new('ripemd160', hashlib.sha256(s).digest()).digest()
+    return hashlib.new('ripemd160', hashlib.sha256(input).digest()).digest()
 
-def hash256(s):
+def hash256(input: any) -> bytes:
     '''two rounds of sha256'''
-    return hashlib.sha256(hashlib.sha256(s).digest()).digest()
+    return hashlib.sha256(hashlib.sha256(input).digest()).digest()
 
 def encode_base58(byte_string: bytes) -> str:
     """Encodes an array of bytes into a base58 encoded string"""
@@ -85,6 +86,130 @@ def encode_varint(num: int) -> bytes:
         return b'\xff' + int_to_little_endian(num, 8)
     else:
         raise ValueError(f"integer {num} too large to encode as varint")
+
+def bits_to_target(bits: bytes) -> int:
+    """Returns the target value computed from the bits field using the equation target = coefficient * 256 ^ (exponent-3)"""
+    exponent = bits[-1]
+    coefficient = little_endian_to_int(bits[:-1])
+    return coefficient * 256**(exponent - 3)
+
+def target_to_bits(target: int) -> bytes:
+    """Turns a target integer back into bits"""
+    raw_bytes = target.to_bytes(32, 'big')
+    raw_bytes = raw_bytes.lstrip(b'\x00')  
+    if raw_bytes[0] > 0x7f:  
+        exponent = len(raw_bytes) + 1
+        coefficient = b'\x00' + raw_bytes[:2]
+    else:
+        exponent = len(raw_bytes)  
+        coefficient = raw_bytes[:3]  
+    new_bits = coefficient[::-1] + bytes([exponent])  
+    return new_bits
+
+def calculate_new_bits(previous_bits: bytes, time_differential: int) -> bytes:
+    if time_differential > CONSTANT_SECONDS_IN_TWO_WEEKS * 4:
+        time_differential = CONSTANT_SECONDS_IN_TWO_WEEKS * 4
+    if time_differential < CONSTANT_SECONDS_IN_TWO_WEEKS // 4:
+        time_differential = CONSTANT_SECONDS_IN_TWO_WEEKS // 4
+    new_target = bits_to_target(previous_bits) * time_differential // CONSTANT_SECONDS_IN_TWO_WEEKS
+    return target_to_bits(new_target)
+
+def merkle_parent(hash1, hash2) -> bytes:
+    """Takes the binary hashes and calculates the hash256"""
+    return hash256(hash1 + hash2)
+
+def merkle_parent_level(hashes):
+    """Takes a list of binary hashes and returns a list that's half the length"""
+    if len(hashes) == 1:
+        raise RuntimeError('Cannot take a parent level with only 1 item')
+    if len(hashes) % 2 == 1:
+        hashes.append(hashes[-1])
+    parent_level = []
+    for i in range(0, len(hashes), 2):
+        parent = merkle_parent(hashes[i], hashes[i + 1])
+        parent_level.append(parent)
+    return parent_level
+
+def merkle_root(hashes):
+    """Takes a list of binary hashes and returns the merkle root"""
+    current_level = hashes
+    while len(current_level) > 1:
+        current_level = merkle_parent_level(current_level)
+    return current_level[0]
+
+def bytes_to_bit_field(some_bytes):
+    flag_bits = []
+    for byte in some_bytes:
+        for _ in range(8):
+            flag_bits.append(byte & 1)
+            byte >>= 1
+    return flag_bits
+
+def bit_field_to_bytes(bit_field):
+    if len(bit_field) % 8 != 0:
+        raise RuntimeError('bit_field does not have a length that is divisible by 8')
+    result = bytearray(len(bit_field) // 8)
+    for i, bit in enumerate(bit_field):
+        byte_index, bit_index = divmod(i, 8)
+        if bit:
+            result[byte_index] |= 1 << bit_index
+    return bytes(result)
+
+
+def bytes_to_bit_field(some_bytes):
+    flag_bits = []
+    # iterate over each byte of flags
+    for byte in some_bytes:
+        # iterate over each bit, right-to-left
+        for _ in range(8):
+            # add the current bit (byte & 1)
+            flag_bits.append(byte & 1)
+            # rightshift the byte 1
+            byte >>= 1
+    return flag_bits
+
+
+def murmur3(data, seed=0):
+    '''from http://stackoverflow.com/questions/13305290/is-there-a-pure-python-implementation-of-murmurhash'''
+    c1 = 0xcc9e2d51
+    c2 = 0x1b873593
+    length = len(data)
+    h1 = seed
+    roundedEnd = (length & 0xfffffffc)  # round down to 4 byte block
+    for i in range(0, roundedEnd, 4):
+        # little endian load order
+        k1 = (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | \
+            ((data[i + 2] & 0xff) << 16) | (data[i + 3] << 24)
+        k1 *= c1
+        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)  # ROTL32(k1,15)
+        k1 *= c2
+        h1 ^= k1
+        h1 = (h1 << 13) | ((h1 & 0xffffffff) >> 19)  # ROTL32(h1,13)
+        h1 = h1 * 5 + 0xe6546b64
+    # tail
+    k1 = 0
+    val = length & 0x03
+    if val == 3:
+        k1 = (data[roundedEnd + 2] & 0xff) << 16
+    # fallthrough
+    if val in [2, 3]:
+        k1 |= (data[roundedEnd + 1] & 0xff) << 8
+    # fallthrough
+    if val in [1, 2, 3]:
+        k1 |= data[roundedEnd] & 0xff
+        k1 *= c1
+        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)  # ROTL32(k1,15)
+        k1 *= c2
+        h1 ^= k1
+    # finalization
+    h1 ^= length
+    # fmix(h1)
+    h1 ^= ((h1 & 0xffffffff) >> 16)
+    h1 *= 0x85ebca6b
+    h1 ^= ((h1 & 0xffffffff) >> 13)
+    h1 *= 0xc2b2ae35
+    h1 ^= ((h1 & 0xffffffff) >> 16)
+    return h1 & 0xffffffff
 
 class TestUtils(unittest.TestCase):
     def test_encode_base58(self):

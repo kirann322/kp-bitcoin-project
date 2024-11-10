@@ -1,6 +1,6 @@
 from __future__ import annotations
 from io import BytesIO
-from utils import hash256, little_endian_to_int, read_varint, int_to_little_endian, encode_varint, SIGHASH_ALL
+from utils import hash256, little_endian_to_int, decode_varint, int_to_little_endian, encode_varint, SIGHASH_ALL
 from Script import Script
 
 import json
@@ -42,11 +42,11 @@ class Transaction:
     def parse_transaction(cls, byte_string: bytes, testnet: bool = False) -> Transaction:
         """Returns a Transaction instance from an input byte stream"""
         version = little_endian_to_int(byte_string.read(4))
-        num_inputs = read_varint(byte_string)
+        num_inputs = decode_varint(byte_string)
         inputs = []
         for _ in range(num_inputs):
             inputs.append(TransactionInput.parse_transaction_input(byte_string))
-        num_outputs = read_varint(byte_string)
+        num_outputs = decode_varint(byte_string)
         outputs = []
         for _ in range(num_outputs):
             outputs.append(TransactionOutput.parse(byte_string))
@@ -122,6 +122,24 @@ class Transaction:
         sec = private_key.point.sec()
         self.tx_ins[input_index].script_sig = Script([sig, sec])
         return self.verify_input(input_index)
+    
+    def is_coinbase(self) -> bool:
+        """Returns whether or not the transaction is a coinbase transaction"""
+        if len(self.tx_ins) != 1:
+            return False
+        first_input = self.tx_ins[0]
+        if first_input.prev_tx != b'\x00' * 32:
+            return False
+        if first_input.prev_index != 0xffffffff:
+            return False
+        return True
+    
+    def coinbase_height(self) -> int:
+        """Returns the height of the transaction by reading it from a coinbase transaction as defined in BIP0034"""
+        if not self.is_coinbase():
+            return None
+        element = self.tx_ins[0].script_sig.cmds[0]
+        return little_endian_to_int(element)
 
 
 class TransactionInput:

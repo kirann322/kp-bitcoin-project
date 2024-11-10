@@ -6,7 +6,7 @@ from utils import encode_base58_checksum
 import hmac
 import hashlib
 import Signature
-import S256Field
+from S256Field import S256Point
 
 CONSTANT_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
 CONSTANT_GX = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
