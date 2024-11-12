@@ -1,12 +1,12 @@
-import hashlib
-
 from unittest import TestCase
-from S256Field import S256Point, Signature
+from src.elliptic_curve_cryptography.Secp256k1Curve import Secp256k1Point
+from src.elliptic_curve_cryptography.DigitalSignature import Signature
 from utils import (
     hash160,
     hash256,
 )
 
+import hashlib
 
 def encode_num(num):
     if num == 0:
@@ -657,7 +657,7 @@ def op_checksig(stack, z):
     sec_pubkey = stack.pop()
     der_signature = stack.pop()[:-1]
     try:
-        point = S256Point.parse(sec_pubkey)
+        point = Secp256k1Point.parse(sec_pubkey)
         sig = Signature.parse(der_signature)
     except (ValueError, SyntaxError) as e:
         return False
