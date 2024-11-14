@@ -2,7 +2,7 @@ from __future__ import annotations
 from io import BytesIO
 from unittest import TestCase
 
-from utils import (
+from src.utils import (
     bits_to_target,
     hash256,
     int_to_little_endian,

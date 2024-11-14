@@ -1,7 +1,7 @@
 from unittest import TestCase
 from src.elliptic_curve_cryptography.Secp256k1Curve import Secp256k1Point
 from src.elliptic_curve_cryptography.DigitalSignature import Signature
-from utils import (
+from src.utils import (
     hash160,
     hash256,
 )
@@ -657,8 +657,8 @@ def op_checksig(stack, z):
     sec_pubkey = stack.pop()
     der_signature = stack.pop()[:-1]
     try:
-        point = Secp256k1Point.parse(sec_pubkey)
-        sig = Signature.parse(der_signature)
+        point = Secp256k1Point.parse_secp256k1_point(sec_pubkey)
+        sig = Signature.parse_signature(der_signature)
     except (ValueError, SyntaxError) as e:
         return False
     if point.verify(z, sig):

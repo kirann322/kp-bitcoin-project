@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from utils import (
+from src.utils import (
     bit_field_to_bytes,
     encode_varint,
     int_to_little_endian,

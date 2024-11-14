@@ -112,10 +112,8 @@ class EllipticCurvePoint:
         
     def is_on_curve(self) -> bool:
         """Checks if the given point is on the given elliptic curve"""
-        if (
-            self.a is not None and
-            self.b is not None and
-            self.x is not None and
-            self.y is not None
-        ):
+        if self.a is not None and self.b is not None:
             return ((self.y**2) == ((self.x**3) + (self.a * self.x) + self.b))
+        else:
+            error = "One of the parameters (a, b) of the current curve is a None type"
+            raise TypeError(error)

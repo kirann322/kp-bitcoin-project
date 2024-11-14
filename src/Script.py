@@ -3,13 +3,13 @@ from io import BytesIO
 from logging import getLogger
 from unittest import TestCase
 
-from utils import (
+from src.utils import (
     encode_varint,
     int_to_little_endian,
     little_endian_to_int,
     decode_varint,
 )
-from op import (
+from src.op import (
     OP_CODE_FUNCTIONS,
     OP_CODE_NAMES,
     op_hash160,
@@ -114,7 +114,7 @@ class Script:
                 result += cmd
         return result
 
-    def serialize(self):
+    def serialize_script(self):
         # get the raw serialization (no prepended length)
         result = self.raw_serialize()
         # get the length of the whole thing
@@ -201,8 +201,8 @@ class ScriptTest(TestCase):
         want = bytes.fromhex('035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937')
         self.assertEqual(script.cmds[1], want)
 
-    def test_serialize(self):
+    def test_serialize_script(self):
         want = '6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937'
         script_pubkey = BytesIO(bytes.fromhex(want))
-        script = Script.parse(script_pubkey)
-        self.assertEqual(script.serialize().hex(), want)
+        script = Script.parse_script(script_pubkey)
+        self.assertEqual(script.serialize_script().hex(), want)

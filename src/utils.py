@@ -8,18 +8,17 @@ CONSTANT_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
 CONSTANT_GX = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
 CONSTANT_GY = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
 CONSTANT_SECONDS_IN_TWO_WEEKS = 60*60*24*14
-
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
 BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
-def hash160(input: any) -> bytes:
-    '''sha256 followed by ripemd160'''
+def hash160(input) -> bytes:
+    """Runs a sha256 hash followed by a ripemd160 hash on the input"""
     return hashlib.new('ripemd160', hashlib.sha256(input).digest()).digest()
 
-def hash256(input: any) -> bytes:
-    '''two rounds of sha256'''
+def hash256(input) -> bytes:
+    """Runs a sha256 hash followed by another sha256 hash on the input"""
     return hashlib.sha256(hashlib.sha256(input).digest()).digest()
 
 def encode_base58(byte_string: bytes) -> str:

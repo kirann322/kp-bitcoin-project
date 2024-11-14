@@ -4,7 +4,7 @@ from __future__ import annotations
 from io import BytesIO
 from unittest import TestCase
 
-from utils import (
+from src.utils import (
     bytes_to_bit_field,
     little_endian_to_int,
     merkle_parent,
