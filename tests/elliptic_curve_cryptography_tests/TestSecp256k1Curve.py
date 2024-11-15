@@ -1,8 +1,8 @@
-import unittest
-
 from src.elliptic_curve_cryptography.FiniteFieldElement import *
 from src.elliptic_curve_cryptography.Secp256k1Curve import *
 from src.elliptic_curve_cryptography.DigitalSignature import *
+
+import unittest
 
 class TestSecp256k1Point(unittest.TestCase):
     def test_order(self):

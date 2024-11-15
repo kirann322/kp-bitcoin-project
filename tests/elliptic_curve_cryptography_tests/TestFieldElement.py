@@ -1,5 +1,6 @@
-import unittest
 from src.elliptic_curve_cryptography.FiniteFieldElement import *
+
+import unittest
 
 class TestFiniteFieldElement(unittest.TestCase):
     def test_eq(self):

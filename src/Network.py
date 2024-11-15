@@ -22,7 +22,6 @@ NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
 TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
 
 class NetworkEnvelope:
-
     def __init__(self, command, payload, testnet=False):
         self.command = command
         self.payload = payload
@@ -230,9 +229,15 @@ class GetDataMessage:
             result += identifier[::-1]
         return result
 
+class GenericMessage:
+    def __init__(self, command, payload):
+        self.command = command
+        self.payload = payload
+
+    def serialize(self):
+        return self.payload
 
 class SimpleNode:
-
     def __init__(self, host, port=None, testnet=False, logging=False):
         if port is None:
             if testnet:

@@ -1,5 +1,6 @@
 from src.Script import *
 from src.utils import decode_base58
+
 import unittest
 
 class ScriptTest(unittest.TestCase):

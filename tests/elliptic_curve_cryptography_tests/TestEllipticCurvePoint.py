@@ -1,6 +1,7 @@
-import unittest
 from src.elliptic_curve_cryptography.FiniteFieldElement import *
 from src.elliptic_curve_cryptography.EllipticCurvePoint import *
+
+import unittest
 
 class TestEllipticCurvePoint(unittest.TestCase):  
     def test_is_on_curve(self):

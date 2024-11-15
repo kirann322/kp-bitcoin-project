@@ -1,5 +1,6 @@
-import unittest
 from src.Network import *
+
+import unittest
 
 class NetworkEnvelopeTest(unittest.TestCase):
     def test_parse(self):
