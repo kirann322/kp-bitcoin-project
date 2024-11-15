@@ -20,7 +20,7 @@ The src folder contains each of these classes, which define the some of core ope
 ## How to run tests and verify functionality
 1) Download and install python3, via https://www.python.org/downloads/
 2) Use pip to install pipenv, via the command `pip install pipenv`
-3) Clone the repository using git clone <repo-address>
+3) Clone the repository using `git clone <repo-address>`
 4) Navigate to the repository using `cd kp-bitcoin-project`
 5) Run `pipenv install`, this should install the packages needed to run the tests in a new virtual environment
 6) Run each of the unit tests in the test folder and ensure they pass
