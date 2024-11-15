@@ -9,14 +9,6 @@ CONSTANT_SECP256K1_PRIME = (2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 
 CONSTANT_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
 CONSTANT_GX = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
 CONSTANT_GY = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
-"""
-CONSTANT_G = EllipticCurvePoint(
-        a = FiniteFieldElement(prime=CONSTANT_SECP256K1_PRIME, num=CONSTANT_A),
-        b = FiniteFieldElement(prime=CONSTANT_SECP256K1_PRIME, num=CONSTANT_B),
-        x = FiniteFieldElement(prime=CONSTANT_SECP256K1_PRIME, num=CONSTANT_GX),
-        y = FiniteFieldElement(prime=CONSTANT_SECP256K1_PRIME, num=CONSTANT_GY)
-    )
-"""
 
 class Secp256k1Element(FiniteFieldElement):
     def __init__(self, num: int):
@@ -107,3 +99,5 @@ class Secp256k1Point(EllipticCurvePoint):
                 return Secp256k1Point(x, even_beta)
             else: # value is odd
                 return Secp256k1Point(x, odd_beta)
+
+CONSTANT_G = Secp256k1Point(Secp256k1Element(CONSTANT_GX), Secp256k1Element(CONSTANT_GY))

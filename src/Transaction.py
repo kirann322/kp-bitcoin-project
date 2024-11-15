@@ -149,10 +149,7 @@ class TransactionInput:
         self.sequence = sequence
 
     def __repr__(self):
-        return '{}:{}'.format(
-            self.prev_tx.hex(),
-            self.prev_index,
-        )
+        return f"{self.prev_tx.hex()}:{self.prev_index}"
 
     @classmethod
     def parse_transaction_input(cls, byte_stream: bytes) -> TransactionInput:
@@ -189,7 +186,6 @@ class TransactionInput:
 class TransactionOutput:
     def __init__(self, amount, script_pubkey):
         self.amount = amount
-        # locking script
         self.script_pubkey = script_pubkey
 
     def __repr__(self):

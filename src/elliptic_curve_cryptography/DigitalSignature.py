@@ -6,8 +6,6 @@ from src.elliptic_curve_cryptography.Secp256k1Curve import *
 import hmac
 import hashlib
 
-CONSTANT_G = Secp256k1Point(Secp256k1Element(CONSTANT_GX), Secp256k1Element(CONSTANT_GY))
-
 class Signature:
     def __init__(self, r: int, s: int):
         """Initialize a Signature object"""

@@ -1,6 +1,5 @@
 from __future__ import annotations
 from io import BytesIO
-from logging import getLogger
 from src.elliptic_curve_cryptography.Secp256k1Curve import Secp256k1Point
 from src.elliptic_curve_cryptography.DigitalSignature import Signature
 from src.utils import (
@@ -13,29 +12,24 @@ from src.utils import (
     hash160_to_p2pkh_address,
     hash160_to_p2sh_address,
 )
+
 import hashlib
 
 def p2pkh_script(hash160):
-    '''Takes a hash160 and returns the p2pkh ScriptPubKey'''
+    """Takes a hash160 and returns the p2pkh ScriptPubKey"""
     return Script([0x76, 0xa9, hash160, 0x88, 0xac])
 
-
 def p2sh_script(hash160):
-    '''Takes a hash160 and returns the p2sh ScriptPubKey'''
+    """Takes a hash160 and returns the p2sh ScriptPubKey"""
     return Script([0xa9, hash160, 0x87])
 
-
 def p2wpkh_script(h160):
-    '''Takes a hash160 and returns the p2wpkh ScriptPubKey'''
+    """Takes a hash160 and returns the p2wpkh ScriptPubKey"""
     return Script([0x00, h160])
 
-
 def p2wsh_script(h256):
-    '''Takes a hash160 and returns the p2wsh ScriptPubKey'''
+    """Takes a hash160 and returns the p2wsh ScriptPubKey"""
     return Script([0x00, h256])
-
-LOGGER = getLogger(__name__)
-
 
 class Script:
     def __init__(self, cmds=None):
@@ -44,7 +38,8 @@ class Script:
         else:
             self.cmds = cmds
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Returns the string representation of Script"""
         result = []
         for cmd in self.cmds:
             if type(cmd) == int:
@@ -97,7 +92,7 @@ class Script:
                 # add the op_code to the list of cmds
                 cmds.append(op_code)
         if count != length:
-            raise SyntaxError('parsing script failed')
+            raise SyntaxError("parsing script failed")
         return Script(cmds)
 
     def raw_serialize(self):
@@ -126,7 +121,7 @@ class Script:
                     result += int_to_little_endian(77, 1)
                     result += int_to_little_endian(length, 2)
                 else:
-                    raise ValueError('too long an cmd')
+                    raise ValueError("cmd too long")
                 result += cmd
         return result
 
@@ -151,22 +146,22 @@ class Script:
                 if cmd in (99, 100):
                     # op_if/op_notif require the cmds array
                     if not operation(stack, cmds):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        print(f"bad op: {OP_CODE_NAMES[cmd]}")
                         return False
                 elif cmd in (107, 108):
                     # op_toaltstack/op_fromaltstack require the altstack
                     if not operation(stack, altstack):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        print(f"bad op: {OP_CODE_NAMES[cmd]}")
                         return False
                 elif cmd in (172, 173, 174, 175):
                     # these are signing operations, they need a sig_hash
                     # to check against
                     if not operation(stack, z):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        print(f"bad op: {OP_CODE_NAMES[cmd]}")
                         return False
                 else:
                     if not operation(stack):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        print(f"bad op: {OP_CODE_NAMES[cmd]}")
                         return False
             else:
                 stack.append(cmd)
@@ -182,7 +177,7 @@ class Script:
                     if not op_equal(stack):
                         return False
                     if not op_verify(stack):
-                        LOGGER.info('bad p2sh h160')
+                        print("bad p2sh hash160")
                         return False
                     redeem_script = encode_varint(len(cmd)) + cmd
                     stream = BytesIO(redeem_script)

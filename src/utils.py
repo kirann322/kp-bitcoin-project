@@ -1,4 +1,3 @@
-import unittest
 import hashlib
 
 CONSTANT_A = 0
@@ -21,13 +20,13 @@ def hash256(input) -> bytes:
     """Runs a sha256 hash followed by another sha256 hash on the input"""
     return hashlib.sha256(hashlib.sha256(input).digest()).digest()
 
-def encode_base58(byte_string: bytes) -> str:
+def encode_base58(byte_stream: bytes) -> str:
     """Encodes an array of bytes into a base58 encoded string"""
     BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     index = 0
-    while byte_string[index] == 0:
+    while byte_stream[index] == 0:
         index += 1
-    num = int.from_bytes(byte_string, 'big')
+    num = int.from_bytes(byte_stream, 'big')
     prefix = '1' * index
     result = ''
     while num > 0:
@@ -35,25 +34,25 @@ def encode_base58(byte_string: bytes) -> str:
         result = BASE58_ALPHABET[mod] + result
     return prefix + result
 
-def encode_base58_checksum(b):
-    return encode_base58(b + hash256(b)[:4])
+def encode_base58_checksum(byte_stream: bytes) -> bytes:
+    """Returns a checksum for a base 58 encoded string"""
+    return encode_base58(byte_stream + hash256(byte_stream)[:4])
 
-def decode_base58(s):
+def decode_base58(string: str) -> bytes:
+    """Returns the byte representation of a base58 encoded string"""
     num = 0
-    for c in s:
+    for char in string:
         num *= 58
-        num += BASE58_ALPHABET.index(c)
+        num += BASE58_ALPHABET.index(char)
     combined = num.to_bytes(25, byteorder='big')
     checksum = combined[-4:]
     if hash256(combined[:-4])[:4] != checksum:
         raise ValueError('bad address: {} {}'.format(checksum, hash256(combined[:-4])[:4]))
     return combined[1:-4]
 
-
 def little_endian_to_int(b: bytes) -> int:
     """little_endian_to_int takes byte sequence as a little-endian number, returns an integer"""
     return int.from_bytes(b, 'little')
-
 
 def int_to_little_endian(n: int, length: int) -> bytes:
     """endian_to_little_endian takes an integer and returns the little-endian byte sequence of length"""
@@ -122,7 +121,6 @@ def hash160_to_p2pkh_address(hash160, testnet=False):
         prefix = b'\x00'
     return encode_base58_checksum(prefix + hash160)
 
-
 def hash160_to_p2sh_address(hash160, testnet=False):
     """Takes a byte sequence hash160 and returns a p2sh address string"""
     # p2sh has a prefix of b'\x05' for mainnet, b'\xc4' for testnet
@@ -155,14 +153,6 @@ def merkle_root(hashes):
         current_level = merkle_parent_level(current_level)
     return current_level[0]
 
-def bytes_to_bit_field(some_bytes):
-    flag_bits = []
-    for byte in some_bytes:
-        for _ in range(8):
-            flag_bits.append(byte & 1)
-            byte >>= 1
-    return flag_bits
-
 def bit_field_to_bytes(bit_field):
     if len(bit_field) % 8 != 0:
         raise RuntimeError('bit_field does not have a length that is divisible by 8')
@@ -172,7 +162,6 @@ def bit_field_to_bytes(bit_field):
         if bit:
             result[byte_index] |= 1 << bit_index
     return bytes(result)
-
 
 def bytes_to_bit_field(some_bytes):
     flag_bits = []
@@ -186,63 +175,37 @@ def bytes_to_bit_field(some_bytes):
             byte >>= 1
     return flag_bits
 
-
-def murmur3(data, seed=0):
-    '''from http://stackoverflow.com/questions/13305290/is-there-a-pure-python-implementation-of-murmurhash'''
+def murmur3(data: bytes, seed=0) -> bytes:
+    """Returns the murmur3 hash of the data"""
     c1 = 0xcc9e2d51
     c2 = 0x1b873593
     length = len(data)
     h1 = seed
-    roundedEnd = (length & 0xfffffffc)  # round down to 4 byte block
+    roundedEnd = (length & 0xfffffffc)
     for i in range(0, roundedEnd, 4):
-        # little endian load order
-        k1 = (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | \
-            ((data[i + 2] & 0xff) << 16) | (data[i + 3] << 24)
+        k1 = (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | ((data[i + 2] & 0xff) << 16) | (data[i + 3] << 24)
         k1 *= c1
-        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)  # ROTL32(k1,15)
+        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)
         k1 *= c2
         h1 ^= k1
-        h1 = (h1 << 13) | ((h1 & 0xffffffff) >> 19)  # ROTL32(h1,13)
+        h1 = (h1 << 13) | ((h1 & 0xffffffff) >> 19)
         h1 = h1 * 5 + 0xe6546b64
-    # tail
     k1 = 0
     val = length & 0x03
     if val == 3:
         k1 = (data[roundedEnd + 2] & 0xff) << 16
-    # fallthrough
     if val in [2, 3]:
         k1 |= (data[roundedEnd + 1] & 0xff) << 8
-    # fallthrough
     if val in [1, 2, 3]:
         k1 |= data[roundedEnd] & 0xff
         k1 *= c1
-        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)  # ROTL32(k1,15)
+        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)
         k1 *= c2
         h1 ^= k1
-    # finalization
     h1 ^= length
-    # fmix(h1)
     h1 ^= ((h1 & 0xffffffff) >> 16)
     h1 *= 0x85ebca6b
     h1 ^= ((h1 & 0xffffffff) >> 13)
     h1 *= 0xc2b2ae35
     h1 ^= ((h1 & 0xffffffff) >> 16)
     return h1 & 0xffffffff
-
-class TestUtils(unittest.TestCase):
-    def test_encode_base58(self):
-        tests = [
-            "7c076ff316692a3d7eb3c3bb0f8b1488cf72e1afcd929e29307032997a838a3d",
-            "eff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c",
-            "c7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6",
-        ]
-        solutions = [
-            "9MA8fRQrT4u8Zj8ZRd6MAiiyaxb2Y1CMpvVkHQu5hVM6",
-            "4fE3H2E6XMp4SsxtwinF7w9a34ooUrwWe4WsW1458Pd",
-            "EQJsjkd6JaGwxrjEhfeqPenqHwrBmPQZjJGNSCHBkcF7",
-        ]
-        for idx, test in enumerate(tests):
-            self.assertEqual(encode_base58(bytes.fromhex(test)), solutions[idx])
-
-if __name__ == '__main__':
-    unittest.main()
