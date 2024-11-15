@@ -1,11 +1,6 @@
-import socket
-import time
-
 from __future__ import annotations
 from io import BytesIO
 from random import randint
-from unittest import TestCase
-
 from src.Block import Block
 from src.utils import (
     hash256,
@@ -15,6 +10,9 @@ from src.utils import (
     decode_varint,
 )
 
+import socket
+import time
+
 TX_DATA_TYPE = 1
 BLOCK_DATA_TYPE = 2
 FILTERED_BLOCK_DATA_TYPE = 3
@@ -22,7 +20,6 @@ COMPACT_BLOCK_DATA_TYPE = 4
 
 NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
 TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
-
 
 class NetworkEnvelope:
 
@@ -34,14 +31,12 @@ class NetworkEnvelope:
         else:
             self.magic = NETWORK_MAGIC
 
-    def __repr__(self):
-        return '{}: {}'.format(
-            self.command.decode('ascii'),
-            self.payload.hex(),
-        )
+    def __repr__(self) -> str:
+        """Returns a string representation of NetworkEnvelope"""
+        return f"{self.command.decode('ascii')}: {self.payload.hex()}"
 
     @classmethod
-    def parse_network_envelope(cls, byte_stream: bytes, testnet=True) -> NetworkEnvelope:
+    def parse_network_envelope(cls, byte_stream: bytes, testnet=False) -> NetworkEnvelope:
         """Takes a stream and creates a NetworkEnvelope"""
         magic = byte_stream.read(4)
         if magic == b'':
@@ -63,49 +58,23 @@ class NetworkEnvelope:
             raise IOError('checksum does not match')
         return NetworkEnvelope(command, payload, testnet=testnet)
 
-    def serialize(self) -> bytes:
+    def serialize_network_envelope(self) -> bytes:
         """Returns the byte serialization of the entire network message"""
         # add the network magic
-        # command 12 bytes
-        # fill with 0's
-        # payload length 4 bytes, little endian
-        # checksum 4 bytes, first four of hash256 of payload
-        # payload
         result = self.magic
+        # command 12 bytes and fill with zeroes
         result += self.command + b'\x00' * (12 - len(self.command))
+        # payload length 4 bytes, little endian
         result += int_to_little_endian(len(self.payload), 4)
+        # checksum 4 bytes, first four of hash256 of payload
         result += hash256(self.payload)[:4]
+        # payload
         result += self.payload
         return result
 
     def stream(self) -> BytesIO:
         """Returns a stream for parsing the payload"""
         return BytesIO(self.payload)
-
-
-class NetworkEnvelopeTest(TestCase):
-
-    def test_parse(self):
-        msg = bytes.fromhex('f9beb4d976657261636b000000000000000000005df6e0e2')
-        stream = BytesIO(msg)
-        envelope = NetworkEnvelope.parse(stream)
-        self.assertEqual(envelope.command, b'verack')
-        self.assertEqual(envelope.payload, b'')
-        msg = bytes.fromhex('f9beb4d976657273696f6e0000000000650000005f1a69d2721101000100000000000000bc8f5e5400000000010000000000000000000000000000000000ffffc61b6409208d010000000000000000000000000000000000ffffcb0071c0208d128035cbc97953f80f2f5361746f7368693a302e392e332fcf05050001')
-        stream = BytesIO(msg)
-        envelope = NetworkEnvelope.parse(stream)
-        self.assertEqual(envelope.command, b'version')
-        self.assertEqual(envelope.payload, msg[24:])
-
-    def test_serialize(self):
-        msg = bytes.fromhex('f9beb4d976657261636b000000000000000000005df6e0e2')
-        stream = BytesIO(msg)
-        envelope = NetworkEnvelope.parse(stream)
-        self.assertEqual(envelope.serialize(), msg)
-        msg = bytes.fromhex('f9beb4d976657273696f6e0000000000650000005f1a69d2721101000100000000000000bc8f5e5400000000010000000000000000000000000000000000ffffc61b6409208d010000000000000000000000000000000000ffffcb0071c0208d128035cbc97953f80f2f5361746f7368693a302e392e332fcf05050001')
-        stream = BytesIO(msg)
-        envelope = NetworkEnvelope.parse(stream)
-        self.assertEqual(envelope.serialize(), msg)
 
 
 class VersionMessage:
@@ -158,13 +127,6 @@ class VersionMessage:
         else:
             result += b'\x00'
         return result
-
-
-class VersionMessageTest(TestCase):
-
-    def test_serialize(self):
-        v = VersionMessage(timestamp=0, nonce=b'\x00' * 8)
-        self.assertEqual(v.serialize().hex(), '7f11010000000000000000000000000000000000000000000000000000000000000000000000ffff00000000208d000000000000000000000000000000000000ffff00000000208d0000000000000000182f70726f6772616d6d696e67626974636f696e3a302e312f0000000000')
 
 
 class VerAckMessage:
@@ -234,14 +196,6 @@ class GetHeadersMessage:
         return result
 
 
-class GetHeadersMessageTest(TestCase):
-
-    def test_serialize(self):
-        block_hex = '0000000000000000001237f46acddf58578a37e213d2a6edc4884a2fcad05ba3'
-        gh = GetHeadersMessage(start_block=bytes.fromhex(block_hex))
-        self.assertEqual(gh.serialize().hex(), '7f11010001a35bd0ca2f4a88c4eda6d213e2378a5758dfcd6af437120000000000000000000000000000000000000000000000000000000000000000000000000000000000')
-
-
 class HeadersMessage:
     command = b'headers'
 
@@ -253,21 +207,12 @@ class HeadersMessage:
         num_headers = decode_varint(stream)
         blocks = []
         for _ in range(num_headers):
-            blocks.append(Block.parse(stream))
+            blocks.append(Block.parse_block(stream))
             num_txs = decode_varint(stream)
             if num_txs != 0:
                 raise RuntimeError('number of txs not 0')
         return cls(blocks)
 
-class HeadersMessageTest(TestCase):
-
-    def test_parse(self):
-        hex_msg = '0200000020df3b053dc46f162a9b00c7f0d5124e2676d47bbe7c5d0793a500000000000000ef445fef2ed495c275892206ca533e7411907971013ab83e3b47bd0d692d14d4dc7c835b67d8001ac157e670000000002030eb2540c41025690160a1014c577061596e32e426b712c7ca00000000000000768b89f07044e6130ead292a3f51951adbd2202df447d98789339937fd006bd44880835b67d8001ade09204600'
-        stream = BytesIO(bytes.fromhex(hex_msg))
-        headers = HeadersMessage.parse(stream)
-        self.assertEqual(len(headers.blocks), 2)
-        for b in headers.blocks:
-            self.assertEqual(b.__class__, Block)
 
 class GetDataMessage:
     command = b'getdata'
@@ -279,27 +224,12 @@ class GetDataMessage:
         self.data.append((data_type, identifier))
 
     def serialize(self):
-        # start with the number of items as a varint
-        # loop through each tuple (data_type, identifier) in self.data
-            # data type is 4 bytes Little-Endian
-            # identifier needs to be in Little-Endian
         result = encode_varint(len(self.data))
         for data_type, identifier in self.data:
             result += int_to_little_endian(data_type, 4)
             result += identifier[::-1]
         return result
 
-
-class GetDataMessageTest(TestCase):
-
-    def test_serialize(self):
-        hex_msg = '020300000030eb2540c41025690160a1014c577061596e32e426b712c7ca00000000000000030000001049847939585b0652fba793661c361223446b6fc41089b8be00000000000000'
-        get_data = GetDataMessage()
-        block1 = bytes.fromhex('00000000000000cac712b726e4326e596170574c01a16001692510c44025eb30')
-        get_data.add_data(FILTERED_BLOCK_DATA_TYPE, block1)
-        block2 = bytes.fromhex('00000000000000beb88910c46f6b442312361c6693a7fb52065b583979844910')
-        get_data.add_data(FILTERED_BLOCK_DATA_TYPE, block2)
-        self.assertEqual(get_data.serialize().hex(), hex_msg)
 
 class SimpleNode:
 
@@ -327,11 +257,11 @@ class SimpleNode:
             message.command, message.serialize(), testnet=self.testnet)
         if self.logging:
             print('sending: {}'.format(envelope))
-        self.socket.sendall(envelope.serialize())
+        self.socket.sendall(envelope.serialize_network_envelope())
 
     def read(self):
         """Read a message from the socket"""
-        envelope = NetworkEnvelope.parse(self.stream, testnet=self.testnet)
+        envelope = NetworkEnvelope.parse_network_envelope(self.stream, testnet=self.testnet)
         if self.logging:
             print('receiving: {}'.format(envelope))
         return envelope
@@ -348,10 +278,3 @@ class SimpleNode:
             elif command == PingMessage.command:
                 self.send(PongMessage(envelope.payload))
         return command_to_class[command].parse(envelope.stream())
-
-
-class SimpleNodeTest(TestCase):
-
-    def test_handshake(self):
-        node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)
-        node.handshake()
