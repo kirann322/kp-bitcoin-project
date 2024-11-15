@@ -189,6 +189,7 @@ class TransactionInput:
 class TransactionOutput:
     def __init__(self, amount, script_pubkey):
         self.amount = amount
+        # locking script
         self.script_pubkey = script_pubkey
 
     def __repr__(self):

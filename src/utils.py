@@ -113,6 +113,25 @@ def calculate_new_bits(previous_bits: bytes, time_differential: int) -> bytes:
     new_target = bits_to_target(previous_bits) * time_differential // CONSTANT_SECONDS_IN_TWO_WEEKS
     return target_to_bits(new_target)
 
+def hash160_to_p2pkh_address(hash160, testnet=False):
+    """Takes a byte sequence hash160 and returns a p2pkh address string"""
+    # p2pkh has a prefix of b'\x00' for mainnet, b'\x6f' for testnet
+    if testnet:
+        prefix = b'\x6f'
+    else:
+        prefix = b'\x00'
+    return encode_base58_checksum(prefix + hash160)
+
+
+def hash160_to_p2sh_address(hash160, testnet=False):
+    """Takes a byte sequence hash160 and returns a p2sh address string"""
+    # p2sh has a prefix of b'\x05' for mainnet, b'\xc4' for testnet
+    if testnet:
+        prefix = b'\xc4'
+    else:
+        prefix = b'\x05'
+    return encode_base58_checksum(prefix + hash160)
+
 def merkle_parent(hash1, hash2) -> bytes:
     """Takes the binary hashes and calculates the hash256"""
     return hash256(hash1 + hash2)
